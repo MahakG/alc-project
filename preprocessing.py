@@ -1,70 +1,7 @@
 """ Preprocessing corpus """
 import xml.dom.minidom
 import re
-"""
-document = ""\
-<slideshow>
-<title>Demo slideshow</title>
-<slide><title>Slide title</title>
-<point>This is a demo</point>
-<point>Of a program for processing slides</point>
-</slide>
 
-<slide><title>Another demo slide</title>
-<point>It is important</point>
-<point>To have more than</point>
-<point>one slide</point>
-</slide>
-</slideshow>
-""
-
-dom = xml.dom.minidom.parseString(document)
-
-def getText(nodelist):
-    rc = []
-    for node in nodelist:
-        if node.nodeType == node.TEXT_NODE:
-            rc.append(node.data)
-    return ''.join(rc)
-
-def handleSlideshow(slideshow):
-    print "<html>"
-    handleSlideshowTitle(slideshow.getElementsByTagName("title")[0])
-    slides = slideshow.getElementsByTagName("slide")
-    handleToc(slides)
-    handleSlides(slides)
-    print "</html>"
-
-def handleSlides(slides):
-    for slide in slides:
-        handleSlide(slide)
-
-def handleSlide(slide):
-    handleSlideTitle(slide.getElementsByTagName("title")[0])
-    handlePoints(slide.getElementsByTagName("point"))
-
-def handleSlideshowTitle(title):
-    print "<title>%s</title>" % getText(title.childNodes)
-
-def handleSlideTitle(title):
-    print "<h2>%s</h2>" % getText(title.childNodes)
-
-def handlePoints(points):
-    print "<ul>"
-    for point in points:
-        handlePoint(point)
-    print "</ul>"
-
-def handlePoint(point):
-    print "<li>%s</li>" % getText(point.childNodes)
-
-def handleToc(slides):
-    for slide in slides:
-        title = slide.getElementsByTagName("title")[0]
-        print "<p>%s</p>" % getText(title.childNodes)
-
-handleSlideshow(dom)
-"""
 dictCategories = {'RESTAURANT#GENERAL':1,'RESTAURANT#PRICES':3,'RESTAURANT#MISCELLANEOUS':5,'FOOD#PRICES':7,'FOOD#QUALITY':9,'FOOD#STYLE_OPTIONS':11,
 'DRINKS#PRICES':13,'DRINKS#QUALITY':15,'DRINKS#STYLE_OPTIONS':17,'AMBIENCE#GENERAL':19,'SERVICE#GENERAL':21,
 'LOCATION#GENERAL':23}
@@ -86,12 +23,7 @@ def clean_str(string):
     string = re.sub(r"\)", " \) ", string)
     string = re.sub(r"\?", " \? ", string)
     string = re.sub(r"\s{2,}", " ", string)
-    return string.strip()
-
-def remove_punct(text):
-	tokens = text.split();
-	punctuation = """, . ¡ ! ? ¿ = ) ( / & % $ · [ ] { } - _ * ^ : \" &lt; &gt; RT ... ' """
-	return [word for word in tokens if word not in punctuation.split()]
+    return string.strip().split(" ")
 
 def getText(nodelist):
     rc = []
@@ -126,7 +58,7 @@ def handleReview(r):
 		result.append(handleSentence(s))
 	return result
 def handleSentence(s):
-	text = remove_punct(clean_str(handleText(s.getElementsByTagName("text")[0])))
+	text = clean_str(handleText(s.getElementsByTagName("text")[0]))
 	text = " ".join(text)
 	opinions = handleOpinions(s.getElementsByTagName("Opinion"))
 	return tagIOB(text,opinions)
@@ -165,12 +97,12 @@ def tagIOB(text,opinions):
             		
             		if pos == 0:
             			#without categories
-            			#textList[start+pos][1] = 1
-            			textList[start+pos][1] = dictCategories[o[1]]
+            			textList[start+pos][1] = 1
+            			#textList[start+pos][1] = dictCategories[o[1]]
             		else:
             			#without categories
-            			#textList[start+pos][1] = 2
-            		    textList[start+pos][1] = dictCategories[o[1]]+1
+            			textList[start+pos][1] = 2
+            		    #textList[start+pos][1] = dictCategories[o[1]]+1
 
             		pos+=1
     return textList
