@@ -1,6 +1,6 @@
 """ Preprocessing corpus """
 import xml.dom.minidom
-
+import re
 """
 document = ""\
 <slideshow>
@@ -65,7 +65,34 @@ def handleToc(slides):
 
 handleSlideshow(dom)
 """
-dictCategories = {'RESTAURANT#GENERAL':1,'RESTAURANT#PRICES':3,'RESTAURANT#QUALITY':5,'RESTAURANT#STYLE_OPTIONS':7,'RESTAURANT#MISCELLANEOUS':9,'FOOD#GENERAL':11,'FOOD#PRICES':13,'FOOD#QUALITY':15,'FOOD#STYLE_OPTIONS':17,'FOOD#MISCELLANEOUS':19,'DRINKS#GENERAL':21,'DRINKS#PRICES':23,'DRINKS#QUALITY':25,'DRINKS#STYLE_OPTIONS':27,'DRINKS#MISCELLANEOUS':29,'AMBIENCE#GENERAL':31,'AMBIENCE#PRICES':33,'AMBIENCE#QUALITY':35,'AMBIENCE#STYLE_OPTIONS':37,'AMBIENCE#MISCELLANEOUS':39,'SERVICE#GENERAL':41,'SERVICE#PRICES':43,'SERVICE#QUALITY':45,'SERVICE#STYLE_OPTIONS':47,'SERVICE#MISCELLANEOUS':49,'LOCATION#GENERAL':51,'LOCATION#PRICES':53,'LOCATION#QUALITY':55,'LOCATION#STYLE_OPTIONS':57,'LOCATION#MISCELLANEOUS':59}
+dictCategories = {'RESTAURANT#GENERAL':1,'RESTAURANT#PRICES':3,'RESTAURANT#MISCELLANEOUS':5,'FOOD#PRICES':7,'FOOD#QUALITY':9,'FOOD#STYLE_OPTIONS':11,
+'DRINKS#PRICES':13,'DRINKS#QUALITY':15,'DRINKS#STYLE_OPTIONS':17,'AMBIENCE#GENERAL':19,'SERVICE#GENERAL':21,
+'LOCATION#GENERAL':23}
+
+############
+# CLEANING #
+############
+
+def clean_str(string):
+    """
+    Tokenization/string cleaning for all datasets except for SST.
+    Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
+    """
+    string = re.sub(r"[^A-Za-z0-9()\-,!?\'\`]", " ", string)
+    string = re.sub(r",", " , ", string)
+    string = re.sub(r"- "," - ", string)
+    string = re.sub(r"!", " ! ", string)
+    string = re.sub(r"\(", " \( ", string)
+    string = re.sub(r"\)", " \) ", string)
+    string = re.sub(r"\?", " \? ", string)
+    string = re.sub(r"\s{2,}", " ", string)
+    return string.strip()
+
+def remove_punct(text):
+	tokens = text.split();
+	punctuation = """, . ¡ ! ? ¿ = ) ( / & % $ · [ ] { } - _ * ^ : \" &lt; &gt; RT ... ' """
+	return [word for word in tokens if word not in punctuation.split()]
+
 def getText(nodelist):
     rc = []
     for node in nodelist:
@@ -77,7 +104,7 @@ def load_data(path):
 
 	dom = getXmlDom(path)
 	
-	handleReviews(dom)
+	print(handleReviews(dom))
 
 def getXmlDom(path):
 	f = open(path,'r');
@@ -86,19 +113,23 @@ def getXmlDom(path):
 	return dom
 
 def handleReviews(dom):
+	result = []
 	reviews = dom.getElementsByTagName("Review")
 	for r in reviews:
-		handleReview(r)
+		result.append(handleReview(r))
+	return result
 
 def handleReview(r):
+	result = []
 	sentences = r.getElementsByTagName("sentence")
 	for s in sentences:
-		handleSentence(s)
-
+		result.append(handleSentence(s))
+	return result
 def handleSentence(s):
-	text = removePunctuation(handleText(s.getElementsByTagName("text")[0]))
+	text = remove_punct(clean_str(handleText(s.getElementsByTagName("text")[0])))
+	text = " ".join(text)
 	opinions = handleOpinions(s.getElementsByTagName("Opinion"))
-	tagIOB(text,opinions)
+	return tagIOB(text,opinions)
 
 def handleText(text):
 	return getText(text.childNodes)
@@ -114,14 +145,38 @@ def handleOpinions(opinions):
 	return result
 
 def tagIOB(text,opinions):
-    print(text)
+    #print(text)
     textList = [[word, 0] for word in text.split()]
     
     for o in opinions:
         targetList = o[0].split()
         if targetList[0] != 'NULL':
-            print(findFirstTarget(textList,targetList))
-        
+            pos = 0
+            start = findFirstTarget(textList,targetList)
+
+            #Check whether targetList is in textList
+            while start+pos < len(textList) and pos < len(targetList) and  textList[start+pos][0] == targetList[pos]:
+                pos+=1
+            #If so, tag textList 
+
+            if pos == len(targetList):
+            	pos = 0
+            	while pos < len(targetList):
+            		
+            		if pos == 0:
+            			#without categories
+            			#textList[start+pos][1] = 1
+            			textList[start+pos][1] = dictCategories[o[1]]
+            		else:
+            			#without categories
+            			#textList[start+pos][1] = 2
+            		    textList[start+pos][1] = dictCategories[o[1]]+1
+
+            		pos+=1
+    return textList
+
+                
+
 def findFirstTarget(textList,targetList):
     i = 0
     while(i < len(textList) and textList[i][0] != targetList[0]):
@@ -130,6 +185,8 @@ def findFirstTarget(textList,targetList):
     if i < len(textList):
         return i;
     else:
+        #print(textList)
+        #print(targetList)
         return -1
 def getIdCategory(category):
     return dictCategories[category]
@@ -139,18 +196,8 @@ if __name__ == '__main__':
 
 
 
-############
-# CLEANING #
-############
 
-def remove_punct(text):
-  tokens = text.split();
-  punctuation = """, . 
-  ¡ ! 
-  ? ¿ = )
-   ( / & % $ · [ ] { } 
-    - _ * ^ : \" &lt; &gt; 
-    RT ... ' """
-  return [word for word in tokens if word not in punctuation.split()]
+
+
 
 
