@@ -11,21 +11,17 @@ dictCategories = {'RESTAURANT#GENERAL':1,'RESTAURANT#PRICES':3,'RESTAURANT#MISCE
 ############
 
 def clean_str(string):
-    """
-    Tokenization/string cleaning for all datasets except for SST.
-    Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
-    """
     string = re.sub(r"[^A-Za-z0-9()\-,!?\'\`]", " ", string)
     string = re.sub(r",", " , ", string)
     string = re.sub(r"- "," - ", string)
     string = re.sub(r"!", " ! ", string)
-    string = re.sub(r"\(", " \( ", string)
-    string = re.sub(r"\)", " \) ", string)
-    string = re.sub(r"\?", " \? ", string)
+    string = re.sub(r"\(", " ( ", string)
+    string = re.sub(r"\)", " ) ", string)
+    string = re.sub(r"\?", " ? ", string)
     string = re.sub(r"\s{2,}", " ", string)
-    return string.strip().split(" ")
+    return string.strip().split()
 
-def getText(nodelist):
+def getText(nodelist): 
     rc = []
     for node in nodelist:
         if node.nodeType == node.TEXT_NODE:
@@ -36,7 +32,7 @@ def load_data(path):
 
 	dom = getXmlDom(path)
 	
-	print(handleReviews(dom))
+	return handleReviews(dom)
 
 def getXmlDom(path):
 	f = open(path,'r');
@@ -120,6 +116,7 @@ def findFirstTarget(textList,targetList):
         #print(textList)
         #print(targetList)
         return -1
+
 def getIdCategory(category):
     return dictCategories[category]
 

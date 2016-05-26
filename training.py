@@ -4,10 +4,9 @@
 
 import tensorflow as tf
 import numpy as np
-import os
-import time
 import datetime
 import preprocessing
+import utils
 from SequentialCNN import SequentialCNN
 
 # Parameters
@@ -38,11 +37,26 @@ print("")
 
 
 
-# Load data
+
+# Data Preparatopn
+# ==================================================
+
 print("Loading Training data...")
-reviews = preprocessing.load_data('./data/train.xml')
-vocabulary = utils.getVocabulary(reviews)
-print(reviews)
+rev_train = preprocessing.load_data('./data/train.xml')
+rev_test = preprocessing.load_data('./data/test.xml')
+rev_full = utils.get_sentences(rev_train) + utils.get_sentences(rev_test)
+vocabulary = utils.build_vocabulary(rev_full)
+#print(len(vocabulary))
+#print(vocabulary)
+#print(sorted(vocabulary))
+utils.format_data(utils.get_X(rev_train),None,vocabulary,FLAGS.n_context*2+1)
+
+x_train, x_test = x[:trainingPartitionLength], x[trainingPartitionLength:]
+y_train, y_test = y[:trainingPartitionLength], y[trainingPartitionLength:]
+
+print("Number of Tweets Train: {:d}".format(x_train.shape[0]))
+print("Vocabulary Size Train: {:d}".format(len(vocabulary)))
+print("Number of Tweets Test: {:d}".format(x_test.shape[0]))
 
 # Training
 # ==================================================
@@ -53,10 +67,9 @@ with tf.Graph().as_default():
       log_device_placement=FLAGS.log_device_placement)
     sess = tf.Session(config=session_conf)
     with sess.as_default():
-        cnn = SequentialCNN(
-            sequence_length=(FLAGS.n_context*2+1),
-            #Labeling IOB2 scheme 
-            #O, B-, I-
+        cnn = SentimentCNN(
+            sequence_length=FLAGS.n_context,
+            #Positive, Neutral, Negative
             num_classes=3,
             vocab_size=len(vocabulary),
             embedding_size=FLAGS.embedding_dim,
@@ -70,19 +83,7 @@ with tf.Graph().as_default():
         grads_and_vars = optimizer.compute_gradients(cnn.loss)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
-        #TODO: Add Summaries to the training process
-
-        # Output directory for models and summaries
-        timestamp = str(int(time.time()))
-        out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-        print("Writing to {}\n".format(out_dir))
-
-        # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
-        checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
-        checkpoint_prefix = os.path.join(checkpoint_dir, "model")
-        if not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
-        saver = tf.train.Saver(tf.all_variables())
+        
 
         # Initialize all variables
         sess.run(tf.initialize_all_variables())
@@ -101,15 +102,32 @@ with tf.Graph().as_default():
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
 
+        def test_step(x_test,y_test):
+            
+            accuracy = sess.run(cnn.accuracy, {cnn.input_x: x_test, cnn.input_y: y_test, cnn.dropout_keep_prob: 1.0})
+                
+            # Print accuracy
+            print("=======TESTING========")
+            print("Total number of test examples: {}".format(len(y_test)))
+            print("Accuracy: {:g}".format(accuracy)) 
+
+        #Training Phase
+
         # Generate batches
         batches = utils.batch_iter(
-            list(zip(x, y)), FLAGS.batch_size, FLAGS.num_epochs)
+            list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 
         # Training loop. For each batch...
+        i = 0
         for batch in batches:
             x_batch, y_batch = zip(*batch)
             train_step(x_batch, y_batch)
             current_step = tf.train.global_step(sess, global_step)
 
-        path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-        print("Saved model checkpoint to {}\n".format(path))
+            # Test with Testing Partition
+            if i % FLAGS.test_every == 0:
+                test_step(x_test,y_test)
+            i +=1 
+
+        #Testing Phase
+        #test_step(x_test,y_test)
