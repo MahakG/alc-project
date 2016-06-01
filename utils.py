@@ -4,7 +4,7 @@
 
 import numpy as np
 
-def batch_iter(data, batch_size, num_epochs, shuffle=True):
+def batch_iter(data, batch_size, num_epochs, shuffle=False):
     """
     Generates a batch iterator for a dataset.
     """
@@ -32,15 +32,23 @@ def get_sentences(train):
 			result.append(x)
 	return result
 
-def get_X(train):
+def get_formatted_sentences	(corpus,vocabulary,length):
 	result = []
-	for rev in train:
+	result_y = []
+	for rev in corpus:
 		sentences = []
+		sentences_y = []
 		for s in rev:
-			x, y = zip(*s)
-			sentences.append(x)
+			x1, x2 = zip(*s)
+			sentences.append(x1)
+			sentences_y.append(x2)
 		result.append(sentences)
-	return result
+		result_y.append(sentences_y)
+
+
+	x,y = format_data(result,result_y,vocabulary,length)
+
+	return [x, y]
 
 def build_vocabulary(sentences):
 	"""
@@ -49,9 +57,9 @@ def build_vocabulary(sentences):
 	words = [""]
 	for sentence in sentences:
 		for word in sentence:
-			words.append(word.lower())
+			words.append(word)
 	words = sorted(set(words))
-	print([(x,i) for i,x in enumerate(words)])
+	#print([(x,i) for i,x in enumerate(words)])
 	vocabulary = {x: i for i, x in enumerate(words)}
 
 	return vocabulary
@@ -60,12 +68,26 @@ def build_vocabulary(sentences):
 def format_data(reviews,target,vocabulary,length):
 
 	#Mapping words with values in the vocabulary
-	x = np.array([[[vocabulary[word.lower()] for word in sentence] for sentence in review] for review in reviews])
+	x = np.array([[[vocabulary[word] for word in sentence] for sentence in review] for review in reviews])
 
 	x = np.array(fromReviewsToInput(x,length))
-	#y = np.array(target)
 
-	#return [x,y]
+	y = np.array([[[ word_target for word_target in sentence_target] for sentence_target in t] for t in target])
+	
+	
+	y_result = []
+	for s in y:
+		for w in s:
+			y_result += w
+	print(len(x))
+	print(len(y_result))
+
+	y = []
+	for w in y_result:
+		m = [0]*3
+		m[w] = 1
+		y.append(m)
+	return [x,y]
 
 def fromReviewsToInput(x,length):
 	result = []
@@ -74,7 +96,6 @@ def fromReviewsToInput(x,length):
 		concatenatedReview = []
 		for s in r:
 			concatenatedReview += s
-		print(concatenatedReview)
 		result += generateInput(concatenatedReview, length)
 	return result
 
@@ -85,17 +106,19 @@ def generateInput(concatenatedReview,length):
 		partialResult = []
 		blankBegin = 0
 		blankEnd = 0
-		if i < length -1:
-			blankBegin = length - 1 - i
+		if i < length/2:
+			blankBegin = length/2 - i
 			for j in range(blankBegin):
 				partialResult.append(0) # 0 is the empty word ""
 		
-		for j in range(i,min(i+length-blankBegin,len(concatenatedReview))):
+		for j in range(max(	i-length/2,0),min(i+length/2+1,len(concatenatedReview))):
 			partialResult.append(concatenatedReview[j])
 		
-		if i + length > len(concatenatedReview):
-			blankEnd = i + length - len(concatenatedReview)
+		if i + length/2 >= len(concatenatedReview):
+			blankEnd = i + length/2 + 1 - len(concatenatedReview)
 			for j in range(blankEnd):
 				partialResult.append(0) # 0 is the empty word ""
 		result.append(partialResult)
 	return result
+
+

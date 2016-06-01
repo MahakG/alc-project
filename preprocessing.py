@@ -81,7 +81,8 @@ def tagIOB(text,opinions):
         if targetList[0] != 'NULL':
             pos = 0
             start = findFirstTarget(textList,targetList)
-
+            
+            
             #Check whether targetList is in textList
             while start+pos < len(textList) and pos < len(targetList) and  textList[start+pos][0] == targetList[pos]:
                 pos+=1
@@ -90,17 +91,20 @@ def tagIOB(text,opinions):
             if pos == len(targetList):
             	pos = 0
             	while pos < len(targetList):
-            		
-            		if pos == 0:
-            			#without categories
-            			textList[start+pos][1] = 1
-            			#textList[start+pos][1] = dictCategories[o[1]]
-            		else:
-            			#without categories
-            			textList[start+pos][1] = 2
-            		    #textList[start+pos][1] = dictCategories[o[1]]+1
-
-            		pos+=1
+                    
+                    #    textList[start+pos][1] = 1
+                    #    pos+=1
+                    
+                    if pos == 0:
+                        #without categories
+                        textList[start+pos][1] = 1
+                        #textList[start+pos][1] = dictCategories[o[1]]
+                    else:
+                        #without categories
+                        textList[start+pos][1] = 2
+                        #textList[start+pos][1] = dictCategories[o[1]]+1
+                    pos+=1
+                     
     return textList
 
                 
