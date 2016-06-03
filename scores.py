@@ -53,7 +53,6 @@ def calculateF1(precision,recall):
     return f1
 
 def iobF1(predictions,correct_predictions):
-
     detected = generateIndexes(predictions)
     correct = generateIndexes(correct_predictions)
     ok = list(set(detected).intersection(correct))
@@ -64,8 +63,10 @@ def iobF1(predictions,correct_predictions):
         precision = len(ok) / float(len(detected))
     else:
         precision = 0
-    
-    recall = len(ok) / float(len(correct))
+    if len(correct) > 0:
+        recall = len(ok) / float(len(correct))
+    else:
+        recall = 0
     if precision + recall > 0:
         f1 = 2 * precision * recall / (precision + recall)
     else:

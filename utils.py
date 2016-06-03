@@ -122,3 +122,64 @@ def generateInput(concatenatedReview,length):
 	return result
 
 
+
+def calculateGaussian(x,mu,sigma):
+	y = 1/(sigma * np.sqrt(2 * np.pi)) * np.exp( - (x - mu)**2 / (2 * sigma**2))
+	return y
+
+def generateWeightVector(context):
+	result = []
+	g0 = calculateGaussian(0,0,0.1)
+
+	for i in range(1,context+3):
+		print(float(i)/(context+3)*0.3)
+		g = calculateGaussian(float(i)/(context+3)*0.3,0,0.1)
+		w = g/g0
+		result.append(w)
+	return list(reversed(result[1:-1])) + [1] + result[1:-1]
+
+def generateInvWeightVector(context):
+	w = generateWeightVector(context)
+	return [1 - a for a in w]
+def generateCurrWordMatrix(w,context):
+	result = []
+	for i in range(context*2+1):
+		result.append(w)
+	return result
+
+"""
+	Apply a normal distribution weighted average to the input window to reinforce the word in the middle
+"""
+
+def generateWeightedInput(x,w,context):
+	wordMat = generateCurrWordMatrix(w,context)
+	weightVec = generateWeightVector(context)
+
+	m1 = []
+	
+	i = 0
+	for w in x:
+		result = [e * (1 - weightVec[i]) for e in w]
+		m1.append(result)
+		i+=1
+
+	m2 = []
+
+	i = 0
+	for w in wordMat:
+		result = [e * weightVec[i] for e in w]
+		m2.append(result)
+		i+=1
+
+	return np.add(m1,m2)
+
+
+
+if __name__ == '__main__':
+	print(generateWeightVector(2))
+	print(generateInvWeightVector(2))
+
+
+
+
+
